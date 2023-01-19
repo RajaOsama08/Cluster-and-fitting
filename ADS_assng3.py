@@ -21,7 +21,8 @@ def exp(t, n0, g):
 
 
 def logistic(t, n0, g, t0):
-    """Calculates the logistic function with scale factor n0 and growth rate g"""
+    """Calculates the logistic function with scale factor n0 and
+    growth rate g"""
     f = n0 / (1 + np.exp(-g*(t - t0)))
     return f
 
@@ -65,50 +66,92 @@ def err_ranges(x, func, param, sigma):
     return lower, upper
 
 
-def fit_line(data, name, indicator, title, y_label):
+def fit_line(data, name, count_title, indicator1, indicator2, carbon_col, urban_col, y_label):
+    '''
+    this  function will seprate data indicators and then plot graph show the good data fitting 
+    then it will show confidence of data and error uper and lower limit
+    '''
+    # drop column
+    data = data.drop(['Country Code', 'Indicator Name'], axis=1)
+    # fit exponential growth
     new_df = pd.DataFrame()
     year = np.arange(1963, 2020)
     print(year)
     data = data[data["Country Name"] == name]
-    df_indicator = data[data["Indicator Code"] == indicator]
 
-    df_indicator = df_indicator.drop(
-        ["Country Name", "Indicator Name", "Country Code", "Indicator Code"], axis=1).T
+    carbon_data = data[data["Indicator Code"]
+                       == indicator1]
 
-    df_indicator = df_indicator.dropna()
+    urban_data = data[data["Indicator Code"] == indicator2]
 
-    new_df['urban'] = df_indicator
+    # drop country and indicator column to plot data
+    carbon_data = carbon_data.drop(
+        ["Country Name", "Indicator Code"], axis=1).T
+    urban_data = urban_data.drop(
+        ["Country Name", "Indicator Code"], axis=1).T
+
+    carbon_data = carbon_data.dropna()
+    urban_data = urban_data.dropna()
+
+    new_df[carbon_col] = carbon_data
+    new_df[urban_col] = urban_data
     new_df['Year'] = pd.to_numeric(year)
 
+    # curve fit for urban population
     popt, covar = opt.curve_fit(
-        logistic, new_df['Year'], new_df['urban'], p0=(2e9, 0.05, 1990.0))
-
+        logistic, new_df['Year'], new_df[urban_col], p0=(2e9, 0.04, 1990.0))
     new_df["fit"] = logistic(new_df["Year"], *popt)
     sigma = np.sqrt(np.diag(covar))
-    year = np.arange(1963, 2040)
-    forecast = logistic(year, *popt)
+    year = np.arange(1963, 2020)
+    fit = logistic(year, *popt)
     low, up = err_ranges(year, logistic, popt, sigma)
 
-    new_df.plot("Year", ["urban", "fit"])
-    plt.title(str(name)+title)
-    plt.ylabel(y_label)
+    new_df.plot("Year", [urban_col, "fit"])
+    plt.title(name + " Urban Population")
+    plt.ylabel('Growth')
     plt.show()
 
     plt.figure()
     plt.plot(new_df["Year"],
-             new_df["urban"], label="Urban")
-    plt.title(str(name)+title)
-    plt.plot(year, forecast, label="forecast")
+             new_df[urban_col], label="Urban")
+    plt.title(name + " Urban Population Fit")
+    plt.plot(year, fit, label="curver fit")
     plt.fill_between(year, low, up, color="magenta", alpha=0.6)
     plt.xlabel("year")
-    plt.ylabel("Urban Population")
+    plt.ylabel("Growth")
+    plt.legend()
+    plt.show()
+
+    # curve fit for carbon emission
+    popt, covar = opt.curve_fit(
+        logistic, new_df['Year'], new_df[carbon_col], p0=(2e9, 0.04, 1990.0))
+    new_df["fit"] = logistic(new_df["Year"], *popt)
+    sigma = np.sqrt(np.diag(covar))
+    fit = logistic(year, *popt)
+    low, up = err_ranges(year, logistic, popt, sigma)
+    new_df.plot("Year", [carbon_col, "fit"])
+    plt.title(name + count_title)
+    plt.ylabel(y_label)
+    plt.show()
+
+    plt.figure()
+    plt.plot(new_df["Year"], new_df[carbon_col], label="co2")
+    plt.title(name + " " + count_title + " " + "Fit")
+    plt.plot(year, fit, label="curve fit")
+    plt.fill_between(year, low, up, color="magenta", alpha=0.6)
+    plt.xlabel("year")
+    plt.ylabel(y_label)
     plt.legend()
     plt.show()
     return new_df
 
 
-file = 'world_data.csv'
-pd_df, pd_df_trans = read_data(file)
-
-fit_line(pd_df, 'Pakistan', 'EN.ATM.CO2E.LF.KT', 'Forest area', 'coal growth')
-# fit_line(pd_df, 'Pakistan', 'BX.KLT.DINV.WD.GD.ZS')
+if __name__ == "__main__":
+    file = 'world_data.csv'
+    data, transposed_data = read_data(file)
+    fiti = fit_line(data, "Pakistan", "Carbon Emission",
+                    "EN.ATM.CO2E.LF.KT", "SP.URB.TOTL",
+                    "CO2", "Urban", "CO2 growth")
+    fiti = fit_line(data, "United States", "Carbon Emission",
+                    "EN.ATM.CO2E.LF.KT", "SP.URB.TOTL",
+                    "CO2", "Urban", "CO2 growth")
