@@ -4,10 +4,8 @@ import itertools as iter
 import matplotlib.pyplot as plt
 import scipy.optimize as opt
 from sklearn.neighbors import NearestNeighbors
-from sklearn.cluster import DBSCAN
 import sklearn.cluster as cluster
 import seaborn as sns
-import sklearn.metrics as skmet
 
 
 def read_data(file):
@@ -16,12 +14,13 @@ def read_data(file):
     pd_df = pd_df.drop(["Unnamed: 66"], axis=1)
     return pd_df, pd_df.T
 
+# model function taken form class lecture
+
 
 def exp(t, n0, g):
 
     t = t - 1960.0
     f = n0 * np.exp(g*t)
-    # print('exponential fun:', f)
     return f
 
 
@@ -37,7 +36,6 @@ def norm(array):
     min_val = np.min(array)
     max_val = np.max(array)
     scaled = (array-min_val) / (max_val-min_val)
-    # print('normalization:', scaled)
     return scaled
 
 
@@ -74,7 +72,7 @@ def err_ranges(x, func, param, sigma):
 def fit_line(data, name, count_title, indicator1, indicator2, carbon_col,
              urban_col, y_label):
     '''
-    this  function will seprate data indicators and then plot graph show the
+    this function will seprate data indicators and then plot graph show the
     good data fitting then it will show confidence of data and error uper and 
     lower limit
     '''
@@ -86,6 +84,7 @@ def fit_line(data, name, count_title, indicator1, indicator2, carbon_col,
 
     # taking numpy array range
     year = np.arange(1963, 2020)
+    val = 2e9, 0.04, 1990.0
     # print(year)
     data = data[data["Country Name"] == name]
 
@@ -110,10 +109,9 @@ def fit_line(data, name, count_title, indicator1, indicator2, carbon_col,
 
     # urban population
     popt, covar = opt.curve_fit(
-        logistic, new_df['Year'], new_df[urban_col], p0=(2e9, 0.04, 1990.0))
+        logistic, new_df['Year'], new_df[urban_col], p0=(val))
     new_df["fit"] = logistic(new_df["Year"], *popt)
     sigma = np.sqrt(np.diag(covar))
-    year = np.arange(1963, 2020)
     fit = logistic(year, *popt)
     low, up = err_ranges(year, logistic, popt, sigma)
 
@@ -136,7 +134,7 @@ def fit_line(data, name, count_title, indicator1, indicator2, carbon_col,
 
     # carbon emission plot
     popt, covar = opt.curve_fit(
-        logistic, new_df['Year'], new_df[carbon_col], p0=(2e9, 0.04, 1990.0))
+        logistic, new_df['Year'], new_df[carbon_col], p0=(val))
     new_df["fit"] = logistic(new_df["Year"], *popt)
     sigma = np.sqrt(np.diag(covar))
     fit = logistic(year, *popt)
@@ -178,14 +176,14 @@ def distance(dist):
 
 
 # taken from class lecture 9
-def kmeans_clustring(data, xlabel, ylabel):
+def kmeans_clustring(data, title):
     '''
     this function will show the comparison of different kmeans cluster we we 
     used differenrt statistical methods and other tools
 
     '''
 
-    df_ex = data[["CO2", "Urban"]].copy()
+    df_ex = data[["CO2", "Urban"]]
 
     # Plot for four clusters
     kmeans = cluster.KMeans(n_clusters=4)
@@ -194,19 +192,48 @@ def kmeans_clustring(data, xlabel, ylabel):
     labels = kmeans.labels_
     cen = kmeans.cluster_centers_
     plt.figure(figsize=(6.0, 6.0))
-    # Individual colours can be assigned to symbols. The label l is used to the␣
-    # ,→select the
-    # l-th number from the colour table.
+    # Individual colours can be assigned to symbols. The label l is used to
+
+    # plot the cluster graph
     plt.scatter(df_ex["CO2"], df_ex["Urban"], c=labels, cmap="Accent")
     # colour map Accent selected to increase contrast between colours
     # show cluster centres
     for ic in range(4):
         xc, yc = cen[ic, :]
         plt.plot(xc, yc, "dk", markersize=10)
-    plt.xlabel("total length")
-    plt.ylabel("height")
-    plt.title("4 clusters")
+    plt.xlabel("Co2")
+    plt.ylabel("Urban population")
+    plt.title(title)
     plt.show()
+
+
+def map_corr(df, country, size=10):
+    """Function creates heatmap of correlation matrix for each pair of columns␣
+    ↪→in the dataframe.
+    Input:
+    df: pandas DataFrame
+    size: vertical and horizontal size of the plot (in inch)
+    """
+    df = df.loc[:, ['CO2', 'Urban']]
+    corr = df.corr()
+    fig, ax = plt.subplots(figsize=(size, size))
+    ax.set_title(country)
+    # Create correlation matrix
+    corr_matrix = df.corr()
+    # plot heatmap
+    plt.figure(figsize=(10, 8))
+    sns.set(font_scale=0.9)
+    sns.heatmap(corr_matrix,
+                cmap='crest',
+                vmin=-1,
+                vmax=1,
+                center=0,
+                annot=True,
+                annot_kws=dict(size=12, weight='bold'),
+                linecolor='black',
+                linewidths=0.5,
+                ax=ax)
+    return plt.show()
 
 
 if __name__ == "__main__":
@@ -218,10 +245,12 @@ if __name__ == "__main__":
     # print('fiti:', dataframe)
 
     distance(dataframe)
-    kmeans_clustring(dataframe, "CO2", "Urban")
+    kmeans_clustring(dataframe, "Pakistan")
+    map_corr(dataframe, "Pakistan")
 
     dataframe2 = fit_line(data, "United States", "Carbon Emission",
                           "EN.ATM.CO2E.LF.KT", "SP.URB.TOTL",
                           "CO2", "Urban", "CO2 growth")
     distance(dataframe2)
-    kmeans_clustring(dataframe2, "CO2", "Urban")
+    kmeans_clustring(dataframe2, "United States")
+    map_corr(dataframe2, "United States")
