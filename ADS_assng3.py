@@ -9,6 +9,20 @@ import seaborn as sns
 
 
 def read_data(file):
+    """
+
+
+    Parameters
+    ----------
+    file : TYPE
+        read file.
+
+    Returns
+    -------
+    pd_df : TYPE
+        return two data frame .
+
+    """
 
     pd_df = pd.read_csv(file, skiprows=3)
     pd_df = pd_df.drop(["Unnamed: 66"], axis=1)
@@ -18,7 +32,7 @@ def read_data(file):
 
 
 def exp(t, n0, g):
-
+    """ calculate exponent"""
     t = t - 1960.0
     f = n0 * np.exp(g*t)
     return f
@@ -32,7 +46,7 @@ def logistic(t, n0, g, t0):
 
 
 def norm(array):
-
+    """ nomalize value """
     min_val = np.min(array)
     max_val = np.max(array)
     scaled = (array-min_val) / (max_val-min_val)
@@ -43,12 +57,11 @@ def norm_df(df, first=0, last=None):
 
     for col in df.columns[first:last]:
         df[col] = norm(df[col])
-    # print('df norm:', df[col])
     return df
 
 
 def err_ranges(x, func, param, sigma):
-
+    """ take four parameters  to calculate the upper and lower limit"""
     lower = func(x, *param)
     upper = lower
 
@@ -71,11 +84,17 @@ def err_ranges(x, func, param, sigma):
 
 def fit_line(data, name, count_title, indicator1, indicator2, carbon_col,
              urban_col, y_label):
-    '''
-    this function will seprate data indicators and then plot graph show the
-    good data fitting then it will show confidence of data and error uper and 
-    lower limit
-    '''
+    """
+    take 8 parameters
+    data : data frame.
+    name : country name.
+    count_title : plot title.
+    indicator1 : first indicator.
+    indicator2 : second indicator.
+    carbon_col :co2 column name.
+    urban_col : urban column name.
+    y_label : y_axis name.  """
+
     # drop two column
     data = data.drop(['Country Code', 'Indicator Name'], axis=1)
 
@@ -103,6 +122,7 @@ def fit_line(data, name, count_title, indicator1, indicator2, carbon_col,
     carbon_data = carbon_data.dropna()
     urban_data = urban_data.dropna()
 
+    # creating new data column in new data frame
     new_df[carbon_col] = carbon_data
     new_df[urban_col] = urban_data
     new_df['Year'] = pd.to_numeric(year)
@@ -115,20 +135,26 @@ def fit_line(data, name, count_title, indicator1, indicator2, carbon_col,
     fit = logistic(year, *popt)
     low, up = err_ranges(year, logistic, popt, sigma)
 
+    # ploting data
     new_df.plot("Year", [urban_col, "fit"])
-    plt.title(name + " Urban Population")
-    plt.ylabel('Growth')
+    plt.title(name + " Urban Population", fontsize=15)
+    plt.ylabel('Growth', fontsize=15)
+    plt.xlabel('Year', fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.xticks(fontsize=15)
     plt.show()
 
     # curve fit for urban population
     plt.figure()
     plt.plot(new_df["Year"],
              new_df[urban_col], label="Urban")
-    plt.title(name + " Urban Population Fit")
+    plt.title(name + " Urban Population Fit", fontsize=15)
     plt.plot(year, fit, label="curver fit")
     plt.fill_between(year, low, up, color="magenta", alpha=0.6)
-    plt.xlabel("year")
-    plt.ylabel("Growth")
+    plt.xlabel("Year", fontsize=15)
+    plt.ylabel("Growth", fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.xticks(fontsize=15)
     plt.legend()
     plt.show()
 
@@ -140,24 +166,30 @@ def fit_line(data, name, count_title, indicator1, indicator2, carbon_col,
     fit = logistic(year, *popt)
     low, up = err_ranges(year, logistic, popt, sigma)
     new_df.plot("Year", [carbon_col, "fit"])
-    plt.title(name + count_title)
-    plt.ylabel(y_label)
+    plt.title(name + " " + count_title, fontsize=15)
+    plt.ylabel(y_label, fontsize=15)
+    plt.xlabel("Year", fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.xticks(fontsize=15)
     plt.show()
 
     # curve fit for carbon emission
     plt.figure()
     plt.plot(new_df["Year"], new_df[carbon_col], label="co2")
-    plt.title(name + " " + count_title + " " + "Fit")
+    plt.title(name + " " + count_title + " " + "Fit", fontsize=15)
     plt.plot(year, fit, label="curve fit")
     plt.fill_between(year, low, up, color="magenta", alpha=0.6)
-    plt.xlabel("year")
-    plt.ylabel(y_label)
+    plt.xlabel("year", fontsize=15)
+    plt.ylabel(y_label, fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.xticks(fontsize=15)
     plt.legend()
     plt.show()
     return new_df
 
 
 def distance(dist):
+    """calulate the distance to find the guss value for the model"""
     dist = dist.loc[:, ['CO2', 'Urban']]
     # setting neighbor distance
     nbrs = NearestNeighbors(n_neighbors=6).fit(dist)
@@ -201,15 +233,17 @@ def kmeans_clustring(data, title):
     for ic in range(4):
         xc, yc = cen[ic, :]
         plt.plot(xc, yc, "dk", markersize=10)
-    plt.xlabel("Co2")
-    plt.ylabel("Urban population")
-    plt.title(title)
+    plt.xlabel("Co2", fontsize=15)
+    plt.ylabel("Urban population", fontsize=15)
+    plt.title(title, fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.xticks(fontsize=15)
     plt.show()
 
 
 def map_corr(df, country, size=10):
-    """Function creates heatmap of correlation matrix for each pair of columns␣
-    ↪→in the dataframe.
+    """Function creates heatmap of correlation matrix for each pair of columns 
+    in the dataframe.
     Input:
     df: pandas DataFrame
     size: vertical and horizontal size of the plot (in inch)
@@ -222,14 +256,14 @@ def map_corr(df, country, size=10):
     corr_matrix = df.corr()
     # plot heatmap
     plt.figure(figsize=(10, 8))
-    sns.set(font_scale=0.9)
+    sns.set(font_scale=2.0)
     sns.heatmap(corr_matrix,
                 cmap='crest',
                 vmin=-1,
                 vmax=1,
                 center=0,
                 annot=True,
-                annot_kws=dict(size=12, weight='bold'),
+                annot_kws=dict(size=20, weight='bold'),
                 linecolor='black',
                 linewidths=0.5,
                 ax=ax)
@@ -239,14 +273,14 @@ def map_corr(df, country, size=10):
 if __name__ == "__main__":
     file = 'world_data.csv'
     data, transposed_data = read_data(file)
-    dataframe = fit_line(data, "Pakistan", "Carbon Emission",
+    dataframe = fit_line(data, "Japan", "Carbon Emission",
                          "EN.ATM.CO2E.LF.KT", "SP.URB.TOTL",
                          "CO2", "Urban", "CO2 growth")
     # print('fiti:', dataframe)
 
     distance(dataframe)
-    kmeans_clustring(dataframe, "Pakistan")
-    map_corr(dataframe, "Pakistan")
+    kmeans_clustring(dataframe, "Japan")
+    map_corr(dataframe, "Japan")
 
     dataframe2 = fit_line(data, "United States", "Carbon Emission",
                           "EN.ATM.CO2E.LF.KT", "SP.URB.TOTL",
